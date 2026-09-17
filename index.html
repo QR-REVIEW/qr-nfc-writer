@@ -421,12 +421,21 @@
                     records: [{ recordType: "url", data: value }]
                 });
                 
-                if (shouldLock) {
-                    btn.innerHTML = '<div class="loader"></div> <span>Write done. Pull away & TAP AGAIN to lock...</span>';
-                    await ndef.makeReadOnly();
-                }
+                playBeep(1200, 200); // Beep on write success
                 
-                playBeep(1200, 200);
+                if (shouldLock) {
+                    btn.innerHTML = '<div class="loader"></div> <span>Write done! Pull away & TAP AGAIN to lock...</span>';
+                    try {
+                        await ndef.makeReadOnly();
+                        playBeep(1200, 200); // Beep on lock success
+                    } catch (lockError) {
+                        console.error("Error locking NFC", lockError);
+                        showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
+                        btn.innerHTML = '<i class="ri-error-warning-line"></i> Write OK, Lock Failed';
+                        btn.disabled = false;
+                        return; // Stop the success flow here since locking failed
+                    }
+                }
                 
                 btn.classList.add('success-state');
                 btn.innerHTML = '<i class="ri-check-line"></i> Tag Written ' + (shouldLock ? '& Locked!' : 'Successfully!');
