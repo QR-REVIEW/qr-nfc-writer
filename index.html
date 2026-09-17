@@ -424,7 +424,6 @@
 
             try {
                 const ndef = new NDEFReader();
-                await ndef.scan();
 
                 await ndef.write({
                     records: [{ recordType: "url", data: value }]
@@ -432,23 +431,17 @@
 
                 playBeep(1200, 200);
 
+                // If lock is checked, try to lock with a fresh NDEFReader
                 const shouldLock = document.getElementById('lockTagCheck').checked;
                 if (shouldLock) {
-                    btn.innerHTML = '<div class="loader"></div> <span>Written! Pull away & tap again to lock...</span>';
-                    const lockAbort = new AbortController();
-                    const lockTimeout = setTimeout(() => lockAbort.abort(), 15000);
+                    btn.innerHTML = '<div class="loader"></div> <span>Written! Tap again to lock...</span>';
                     try {
-                        await ndef.makeReadOnly({ signal: lockAbort.signal });
-                        clearTimeout(lockTimeout);
+                        const lockNdef = new NDEFReader();
+                        await lockNdef.makeReadOnly();
                         playBeep(1200, 200);
                     } catch (lockError) {
-                        clearTimeout(lockTimeout);
                         console.error("Error locking NFC", lockError);
-                        if (lockError.name === 'AbortError') {
-                            showError("Tag was written, but lock timed out. Tap again faster next time.");
-                        } else {
-                            showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
-                        }
+                        showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
                     }
                 }
 
@@ -489,7 +482,7 @@
             }
         }
 
-        // Initialize preferences
+        // Initialize lock preference from localStorage
         window.addEventListener('DOMContentLoaded', () => {
             const savedPreference = localStorage.getItem('nfcLockPreference');
             if (savedPreference !== null) {
