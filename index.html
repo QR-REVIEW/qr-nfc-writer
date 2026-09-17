@@ -285,6 +285,11 @@
                 <div class="input-wrapper">
                     <textarea id="valueInput" placeholder="Awaiting scanned link..." readonly></textarea>
                 </div>
+                
+                <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+                    <input type="checkbox" id="lockTagCheck" style="width: 16px; height: 16px; cursor: pointer;">
+                    <label for="lockTagCheck" style="font-size: 0.875rem; color: var(--text-secondary); cursor: pointer; user-select: none;">Make tag read-only (Permanent lock)</label>
+                </div>
 
                 <button class="btn btn-primary" id="writeBtn" onclick="writeToNFC()" type="button" disabled>
                     <i class="ri-rfid-line"></i> Write to Tag (Tap NFC)
@@ -410,15 +415,21 @@
 
             try {
                 const ndef = new NDEFReader();
+                const shouldLock = document.getElementById('lockTagCheck').checked;
                 
                 await ndef.write({
                     records: [{ recordType: "url", data: value }]
                 });
                 
+                if (shouldLock) {
+                    btn.innerHTML = '<div class="loader"></div> <span>Locking tag... Keep holding</span>';
+                    await ndef.makeReadOnly();
+                }
+                
                 playBeep(1200, 200);
                 
                 btn.classList.add('success-state');
-                btn.innerHTML = '<i class="ri-check-line"></i> Tag Written Successfully!';
+                btn.innerHTML = '<i class="ri-check-line"></i> Tag Written ' + (shouldLock ? '& Locked!' : 'Successfully!');
                 
                 // Reset flow after a short delay
                 setTimeout(() => {
