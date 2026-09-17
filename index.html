@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -94,7 +95,7 @@
             gap: 12px;
             margin-bottom: 16px;
         }
-        
+
         .step-number {
             display: flex;
             align-items: center;
@@ -107,7 +108,7 @@
             font-weight: 600;
             color: var(--text-secondary);
         }
-        
+
         .step-active .step-number {
             background-color: var(--primary);
             color: white;
@@ -118,7 +119,7 @@
             font-weight: 600;
             color: var(--text-secondary);
         }
-        
+
         .step-active .step-title {
             color: var(--text-primary);
         }
@@ -152,7 +153,7 @@
             color: var(--text-secondary);
             cursor: default;
         }
-        
+
         textarea[readonly]:focus {
             border-color: var(--border-color);
             box-shadow: none;
@@ -218,15 +219,20 @@
         }
 
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .success-state {
             background-color: var(--success) !important;
             color: white !important;
         }
-        
+
         .alert {
             display: none;
             padding: 12px;
@@ -235,7 +241,7 @@
             font-size: 0.875rem;
             font-weight: 500;
         }
-        
+
         .alert-danger {
             background-color: var(--danger-bg);
             color: var(--danger);
@@ -267,7 +273,7 @@
                     <div class="step-number">1</div>
                     <div class="step-title">Scan Source QR</div>
                 </div>
-                
+
                 <div id="reader"></div>
 
                 <button class="btn btn-secondary" onclick="startScanner()" id="scanBtn" type="button">
@@ -284,11 +290,6 @@
 
                 <div class="input-wrapper">
                     <textarea id="valueInput" placeholder="Awaiting scanned link..." readonly></textarea>
-                </div>
-                
-                <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="lockTagCheck" style="width: 16px; height: 16px; cursor: pointer;" onchange="localStorage.setItem('nfcLockPreference', this.checked)">
-                    <label for="lockTagCheck" style="font-size: 0.875rem; color: var(--text-secondary); cursor: pointer; user-select: none;">Make tag read-only (Permanent lock)</label>
                 </div>
 
                 <button class="btn btn-primary" id="writeBtn" onclick="writeToNFC()" type="button" disabled>
@@ -311,16 +312,16 @@
             }
             const oscillator = audioCtx.createOscillator();
             const gainNode = audioCtx.createGain();
-            
+
             oscillator.type = 'sine';
             oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
-            
+
             gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
             gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration / 1000));
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
+
             oscillator.start();
             oscillator.stop(audioCtx.currentTime + (duration / 1000));
         }
@@ -341,14 +342,14 @@
             hideError();
             document.getElementById('valueInput').value = decodedText;
             stopScanner();
-            
+
             // Move to Step 2
             document.getElementById('step1').classList.remove('step-active');
             document.getElementById('step1').style.opacity = '0.7';
-            
+
             document.getElementById('step2').classList.add('step-active');
             document.getElementById('step2').style.opacity = '1';
-            
+
             document.getElementById('writeBtn').disabled = false;
         }
 
@@ -396,7 +397,7 @@
         async function writeToNFC() {
             hideError();
             const value = document.getElementById('valueInput').value.trim();
-            
+
             if (!value) {
                 showError('Please scan a QR code first.');
                 return;
@@ -409,51 +410,38 @@
 
             const btn = document.getElementById('writeBtn');
             const originalHTML = btn.innerHTML;
-            
+
             btn.innerHTML = '<div class="loader"></div> <span>Hold device near NFC tag...</span>';
             btn.disabled = true;
 
             try {
                 const ndef = new NDEFReader();
-                await ndef.scan();
-                
+
                 await ndef.write({
                     records: [{ recordType: "url", data: value }]
                 });
-                
+
                 playBeep(1200, 200);
 
-                const shouldLock = document.getElementById('lockTagCheck').checked;
-                if (shouldLock) {
-                    btn.innerHTML = '<div class="loader"></div> <span>Written! Keep holding to lock...</span>';
-                    try {
-                        await ndef.makeReadOnly();
-                        playBeep(1200, 200);
-                    } catch (lockError) {
-                        console.error("Error locking NFC", lockError);
-                        showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
-                    }
-                }
-                
                 btn.classList.add('success-state');
                 btn.innerHTML = '<i class="ri-check-line"></i> Tag Written Successfully!';
-                
+
                 // Reset flow after a short delay
                 setTimeout(() => {
                     btn.classList.remove('success-state');
                     btn.innerHTML = originalHTML;
                     btn.disabled = true;
-                    
+
                     document.getElementById('valueInput').value = '';
                     document.getElementById('step1').classList.add('step-active');
                     document.getElementById('step1').style.opacity = '1';
                     document.getElementById('step2').classList.remove('step-active');
                     document.getElementById('step2').style.opacity = '0.5';
                 }, 2500);
-                
+
             } catch (error) {
                 console.error("Error writing to NFC", error);
-                
+
                 let errorMsg = error.message || 'Unknown error occurred.';
                 if (error.name === 'NotAllowedError') {
                     errorMsg = 'NFC permission was denied.';
@@ -464,21 +452,14 @@
                 } else if (error.name === 'AbortError') {
                     errorMsg = 'NFC write operation was aborted.';
                 }
-                
+
                 showError("Activation failed: " + errorMsg);
-                
+
                 btn.innerHTML = originalHTML;
                 btn.disabled = false;
             }
         }
-
-        // Initialize preferences
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedPreference = localStorage.getItem('nfcLockPreference');
-            if (savedPreference !== null) {
-                document.getElementById('lockTagCheck').checked = savedPreference === 'true';
-            }
-        });
     </script>
 </body>
+
 </html>
