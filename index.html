@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Tag Writer</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <!-- Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --surface: #ffffff;
+            --text-primary: #111827;
+            --text-secondary: #4b5563;
+            --border-color: #e5e7eb;
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #059669;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --focus-ring: rgba(37, 99, 235, 0.2);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            line-height: 1.5;
+            padding: 24px;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .layout-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .panel {
+            background-color: var(--surface);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 32px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        header {
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
+
+        .subtitle {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .step-container {
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 20px;
+            background-color: #fafafa;
+            transition: opacity 0.2s ease, border-color 0.2s ease;
+        }
+
+        .step-active {
+            background-color: var(--surface);
+            border-color: #d1d5db;
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .step-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: #e5e7eb;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .step-active .step-number {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .step-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+        
+        .step-active .step-title {
+            color: var(--text-primary);
+        }
+
+        .input-wrapper {
+            margin-bottom: 16px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 0.875rem;
+            color: var(--text-primary);
+            background-color: var(--surface);
+            resize: vertical;
+            min-height: 80px;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            word-break: break-all;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--focus-ring);
+        }
+
+        textarea[readonly] {
+            background-color: #f9fafb;
+            color: var(--text-secondary);
+            cursor: default;
+        }
+        
+        textarea[readonly]:focus {
+            border-color: var(--border-color);
+            box-shadow: none;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+
+        .btn-secondary {
+            background-color: var(--surface);
+            color: var(--text-primary);
+            border-color: #d1d5db;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #f3f4f6;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        #reader {
+            width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            display: none;
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+            background: #f3f4f6;
+        }
+
+        .loader {
+            display: inline-block;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .success-state {
+            background-color: var(--success) !important;
+            color: white !important;
+        }
+        
+        .alert {
+            display: none;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .alert-danger {
+            background-color: var(--danger-bg);
+            color: var(--danger);
+            border: 1px solid #fca5a5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="layout-container">
+        <div class="panel">
+            <header>
+                <h1>NFC Tag Writer</h1>
+                <p class="subtitle">Scan a QR code to quickly copy its URL to an NFC tag.</p>
+            </header>
+
+            <div id="errorAlert" class="alert">
+                <i class="ri-error-warning-line"></i>
+                <span id="errorMsg"></span>
+            </div>
+
+            <!-- Step 1: Scan QR -->
+            <div class="step-container step-active" id="step1">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div class="step-title">Scan Source QR</div>
+                </div>
+                
+                <div id="reader"></div>
+
+                <button class="btn btn-secondary" onclick="startScanner()" id="scanBtn" type="button">
+                    <i class="ri-qr-scan-2-line"></i> Open Camera Scanner
+                </button>
+            </div>
+
+            <!-- Step 2: Write NFC -->
+            <div class="step-container" id="step2" style="opacity: 0.5;">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div class="step-title">Write to NFC Tag</div>
+                </div>
+
+                <div class="input-wrapper">
+                    <textarea id="valueInput" placeholder="Awaiting scanned link..." readonly></textarea>
+                </div>
+
+                <button class="btn btn-primary" id="writeBtn" onclick="writeToNFC()" type="button" disabled>
+                    <i class="ri-rfid-line"></i> Write to Tag (Tap NFC)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let html5QrcodeScanner = null;
+        let audioCtx = null;
+
+        function playBeep(frequency = 800, duration = 150) {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(frequency, audioCtx.currentTime);
+            
+            gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (duration / 1000));
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + (duration / 1000));
+        }
+
+        function showError(message) {
+            const alertEl = document.getElementById('errorAlert');
+            document.getElementById('errorMsg').textContent = message;
+            alertEl.classList.add('alert-danger');
+        }
+
+        function hideError() {
+            const alertEl = document.getElementById('errorAlert');
+            alertEl.classList.remove('alert-danger');
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            playBeep(800, 150);
+            hideError();
+            document.getElementById('valueInput').value = decodedText;
+            stopScanner();
+            
+            // Move to Step 2
+            document.getElementById('step1').classList.remove('step-active');
+            document.getElementById('step1').style.opacity = '0.7';
+            
+            document.getElementById('step2').classList.add('step-active');
+            document.getElementById('step2').style.opacity = '1';
+            
+            document.getElementById('writeBtn').disabled = false;
+        }
+
+        function onScanFailure(error) {
+            // handle scan failure implicitly
+        }
+
+        function startScanner() {
+            hideError();
+            const readerElement = document.getElementById('reader');
+            const scanBtn = document.getElementById('scanBtn');
+
+            if (html5QrcodeScanner) {
+                stopScanner();
+                return;
+            }
+
+            readerElement.style.display = 'block';
+            scanBtn.innerHTML = '<i class="ri-close-line"></i> Close Scanner';
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" },
+                { fps: 15, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                showError("Error accessing camera. Please ensure permissions are granted.");
+                stopScanner();
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrcodeScanner) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    html5QrcodeScanner = null;
+                    document.getElementById('reader').style.display = 'none';
+                    const scanBtn = document.getElementById('scanBtn');
+                    scanBtn.innerHTML = '<i class="ri-qr-scan-2-line"></i> Open Camera Scanner';
+                });
+            }
+        }
+
+        async function writeToNFC() {
+            hideError();
+            const value = document.getElementById('valueInput').value.trim();
+            
+            if (!value) {
+                showError('Please scan a QR code first.');
+                return;
+            }
+
+            if (!("NDEFReader" in window)) {
+                showError("Web NFC is not supported on this device or browser. Please use Chrome on Android via HTTPS.");
+                return;
+            }
+
+            const btn = document.getElementById('writeBtn');
+            const originalHTML = btn.innerHTML;
+            
+            btn.innerHTML = '<div class="loader"></div> <span>Hold device near NFC tag...</span>';
+            btn.disabled = true;
+
+            try {
+                const ndef = new NDEFReader();
+                
+                await ndef.write({
+                    records: [{ recordType: "url", data: value }]
+                });
+                
+                playBeep(1200, 200);
+                
+                btn.classList.add('success-state');
+                btn.innerHTML = '<i class="ri-check-line"></i> Tag Written Successfully!';
+                
+                // Reset flow after a short delay
+                setTimeout(() => {
+                    btn.classList.remove('success-state');
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = true;
+                    
+                    document.getElementById('valueInput').value = '';
+                    document.getElementById('step1').classList.add('step-active');
+                    document.getElementById('step1').style.opacity = '1';
+                    document.getElementById('step2').classList.remove('step-active');
+                    document.getElementById('step2').style.opacity = '0.5';
+                }, 2500);
+                
+            } catch (error) {
+                console.error("Error writing to NFC", error);
+                
+                let errorMsg = error.message || 'Unknown error occurred.';
+                if (error.name === 'NotAllowedError') {
+                    errorMsg = 'NFC permission was denied.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMsg = 'NFC writing is not supported.';
+                } else if (error.name === 'NetworkError') {
+                    errorMsg = 'Cannot write to this NFC chip.';
+                } else if (error.name === 'AbortError') {
+                    errorMsg = 'NFC write operation was aborted.';
+                }
+                
+                showError("Activation failed: " + errorMsg);
+                
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
