@@ -287,7 +287,7 @@
                 </div>
                 
                 <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="lockTagCheck" style="width: 16px; height: 16px; cursor: pointer;">
+                    <input type="checkbox" id="lockTagCheck" style="width: 16px; height: 16px; cursor: pointer;" onchange="localStorage.setItem('nfcLockPreference', this.checked)">
                     <label for="lockTagCheck" style="font-size: 0.875rem; color: var(--text-secondary); cursor: pointer; user-select: none;">Make tag read-only (Permanent lock)</label>
                 </div>
 
@@ -422,7 +422,7 @@
                 });
                 
                 if (shouldLock) {
-                    btn.innerHTML = '<div class="loader"></div> <span>Locking tag... Keep holding</span>';
+                    btn.innerHTML = '<div class="loader"></div> <span>Write done. Pull away & TAP AGAIN to lock...</span>';
                     await ndef.makeReadOnly();
                 }
                 
@@ -464,6 +464,14 @@
                 btn.disabled = false;
             }
         }
+
+        // Initialize preferences
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedPreference = localStorage.getItem('nfcLockPreference');
+            if (savedPreference !== null) {
+                document.getElementById('lockTagCheck').checked = savedPreference === 'true';
+            }
+        });
     </script>
 </body>
 </html>
