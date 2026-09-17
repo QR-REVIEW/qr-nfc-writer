@@ -434,13 +434,21 @@
 
                 const shouldLock = document.getElementById('lockTagCheck').checked;
                 if (shouldLock) {
-                    btn.innerHTML = '<div class="loader"></div> <span>Written! Keep holding to lock...</span>';
+                    btn.innerHTML = '<div class="loader"></div> <span>Written! Pull away & tap again to lock...</span>';
+                    const lockAbort = new AbortController();
+                    const lockTimeout = setTimeout(() => lockAbort.abort(), 15000);
                     try {
-                        await ndef.makeReadOnly();
+                        await ndef.makeReadOnly({ signal: lockAbort.signal });
+                        clearTimeout(lockTimeout);
                         playBeep(1200, 200);
                     } catch (lockError) {
+                        clearTimeout(lockTimeout);
                         console.error("Error locking NFC", lockError);
-                        showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
+                        if (lockError.name === 'AbortError') {
+                            showError("Tag was written, but lock timed out. Tap again faster next time.");
+                        } else {
+                            showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
+                        }
                     }
                 }
 
