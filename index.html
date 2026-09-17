@@ -292,14 +292,6 @@
                     <textarea id="valueInput" placeholder="Awaiting scanned link..." readonly></textarea>
                 </div>
 
-                <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="lockTagCheck" style="width: 16px; height: 16px; cursor: pointer;"
-                        onchange="localStorage.setItem('nfcLockPreference', this.checked)">
-                    <label for="lockTagCheck"
-                        style="font-size: 0.875rem; color: var(--text-secondary); cursor: pointer; user-select: none;">Make
-                        tag read-only (Permanent lock)</label>
-                </div>
-
                 <button class="btn btn-primary" id="writeBtn" onclick="writeToNFC()" type="button" disabled>
                     <i class="ri-rfid-line"></i> Write to Tag (Tap NFC)
                 </button>
@@ -424,25 +416,12 @@
 
             try {
                 const ndef = new NDEFReader();
-                await ndef.scan();
 
                 await ndef.write({
                     records: [{ recordType: "url", data: value }]
                 });
 
                 playBeep(1200, 200);
-
-                const shouldLock = document.getElementById('lockTagCheck').checked;
-                if (shouldLock) {
-                    btn.innerHTML = '<div class="loader"></div> <span>Written! Keep holding to lock...</span>';
-                    try {
-                        await ndef.makeReadOnly();
-                        playBeep(1200, 200);
-                    } catch (lockError) {
-                        console.error("Error locking NFC", lockError);
-                        showError("Tag was written, but locking failed: " + (lockError.message || "Unknown error"));
-                    }
-                }
 
                 btn.classList.add('success-state');
                 btn.innerHTML = '<i class="ri-check-line"></i> Tag Written Successfully!';
@@ -480,14 +459,6 @@
                 btn.disabled = false;
             }
         }
-
-        // Initialize preferences
-        window.addEventListener('DOMContentLoaded', () => {
-            const savedPreference = localStorage.getItem('nfcLockPreference');
-            if (savedPreference !== null) {
-                document.getElementById('lockTagCheck').checked = savedPreference === 'true';
-            }
-        });
     </script>
 </body>
 
